@@ -16,8 +16,6 @@ class EncryptionService {
       final plaintextBytes = utf8.encode(plaintext);
       final ciphertext = cipher.process(plaintextBytes);
       final tag = cipher.mac;
-
-      // Format: IV (12 bytes) + Tag (16 bytes) + Ciphertext
       final result = <int>[];
       result.addAll(iv);
       result.addAll(tag);
@@ -50,14 +48,10 @@ class EncryptionService {
       print('- IV length: ${iv.length}');
       print('- Tag length: ${tag.length}');
       print('- Ciphertext length: ${ciphertext.length}');
-
-      // Method 1: Try standard approach
       try {
         final cipher = GCMBlockCipher(AESEngine());
         final params = AEADParameters(KeyParameter(key), 128, iv, Uint8List(0));
         cipher.init(false, params);
-
-        // Append tag to ciphertext for GCM
         final input = <int>[];
         input.addAll(ciphertext);
         input.addAll(tag);
@@ -68,8 +62,6 @@ class EncryptionService {
         return result;
       } catch (e1) {
         print('Method 1 failed: $e1');
-
-        // Method 2: Try alternative approach
         try {
           final cipher = GCMBlockCipher(AESEngine());
           final params = AEADParameters(KeyParameter(key), 128, iv, tag);
@@ -95,7 +87,6 @@ class EncryptionService {
     return Uint8List.fromList(List.generate(length, (i) => rnd.nextInt(256)));
   }
 
-  // Helper method untuk debugging
   static void debugEncryptedData(String encryptedData) {
     try {
       final data = base64.decode(encryptedData);
