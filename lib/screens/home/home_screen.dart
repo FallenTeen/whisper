@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../chat/chat_screen.dart';
+import '../chat/user_search_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -7,7 +9,17 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Whisper Chat')),
-      body: const Center(child: Text('Chat List Placeholder')),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const UserSearchScreen()),
+            );
+          },
+          child: const Text('Start New Chat'),
+        ),
+      ),
     );
   }
 }

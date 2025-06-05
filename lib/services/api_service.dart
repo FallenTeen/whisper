@@ -14,6 +14,7 @@ class ApiService {
     if (includeAuth) {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
+      print('DEBUG: Using token: $token'); // <-- Add this line
       if (token != null) {
         headers['Authorization'] = 'Bearer $token';
       }
