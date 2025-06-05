@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../chat/chat_screen.dart';
 import '../chat/user_search_screen.dart';
 
 class HomeScreen extends StatelessWidget {

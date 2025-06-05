@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/message.dart';
 import '../services/chat_service.dart';
-import '../services/encryption_service.dart';
 
 class ChatProvider with ChangeNotifier {
   List<Message> _messages = [];
@@ -26,39 +25,7 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> decryptAllMessages(int roomId) async {
-    final key = await ChatService.getRoomKey(roomId);
-    if (key == null) {
-      _error = 'Room key not found';
-      notifyListeners();
-      return;
-    }
-    for (var i = 0; i < _messages.length; i++) {
-      final msg = _messages[i];
-      if (msg.isEncrypted &&
-          (msg.decryptedContent == null || msg.decryptedContent!.isEmpty)) {
-        try {
-          final decrypted = EncryptionService.decrypt(msg.content, key);
-          _messages[i] = Message(
-            id: msg.id,
-            senderId: msg.senderId,
-            content: msg.content,
-            isEncrypted: msg.isEncrypted,
-            createdAt: msg.createdAt,
-            decryptedContent: decrypted,
-          );
-        } catch (_) {
-          _messages[i] = Message(
-            id: msg.id,
-            senderId: msg.senderId,
-            content: msg.content,
-            isEncrypted: msg.isEncrypted,
-            createdAt: msg.createdAt,
-            decryptedContent: '[Failed to decrypt]',
-          );
-        }
-      }
-    }
-    notifyListeners();
+    return;
   }
 
   Future<void> sendMessage(
@@ -67,15 +34,9 @@ class ChatProvider with ChangeNotifier {
     bool encrypt = false,
   }) async {
     try {
-      String messageToSend = content;
-      if (encrypt) {
-        final key = await ChatService.getRoomKey(roomId);
-        if (key == null) throw Exception('Room key not found');
-        messageToSend = EncryptionService.encrypt(content, key);
-      }
       final message = await ChatService.sendMessage(
         roomId,
-        messageToSend,
+        content,
         encrypt: encrypt,
       );
       _messages.add(message);

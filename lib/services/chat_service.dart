@@ -3,7 +3,6 @@ import '../constants/api_constants.dart';
 import '../models/chat_room.dart';
 import '../models/message.dart';
 import '../models/user.dart';
-import '../services/encryption_service.dart';
 import 'api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -64,14 +63,11 @@ class ChatService {
 
         print('Fetched ${messages.length} messages for room $roomId');
 
-        // Tidak melakukan dekripsi otomatis di sini
-        // Dekripsi akan dilakukan di MessageBubble sesuai kebutuhan
         return messages;
       } else {
-        throw Exception('Failed to fetch messages: ${response.statusCode}');
+        throw Exception('Failed to fetch messages: \\${response.statusCode}');
       }
     } catch (e) {
-      print('Get messages error: $e');
       throw Exception('Get messages error: $e');
     }
   }
@@ -82,41 +78,18 @@ class ChatService {
     bool encrypt = false,
   }) async {
     try {
-      String finalContent = content;
-
-      if (encrypt) {
-        final roomKey = await getRoomKey(roomId);
-        if (roomKey == null) {
-          throw Exception('No encryption key found for room $roomId');
-        }
-
-        try {
-          finalContent = EncryptionService.encrypt(content, roomKey);
-          print('Message encrypted successfully');
-          print('Original length: ${content.length}');
-          print('Encrypted length: ${finalContent.length}');
-        } catch (e) {
-          print('Encryption failed: $e');
-          throw Exception('Failed to encrypt message: $e');
-        }
-      }
-
+      // Always send plain text; API will handle encryption if needed
       final response = await ApiService.post(
         ApiConstants.getSendMessageUrl(roomId),
-        {'content': finalContent, 'encrypt': encrypt},
+        {'content': content, 'encrypt': encrypt},
       );
-
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
-        final message = Message.fromJson(data['data']);
-        print('Message sent successfully: ${message.id}');
-        return message;
+        return Message.fromJson(data['data']);
       } else {
-        final error = json.decode(response.body);
-        throw Exception(error['error'] ?? 'Failed to send message');
+        throw Exception('Failed to send message: \\${response.statusCode}');
       }
     } catch (e) {
-      print('Send message error: $e');
       throw Exception('Send message error: $e');
     }
   }
@@ -169,39 +142,6 @@ class ChatService {
     } catch (e) {
       print('Search users error: $e');
       throw Exception('Search users error: $e');
-    }
-  }
-
-  // Helper method untuk validasi dan debug encryption
-  static Future<bool> validateEncryption(int roomId, String testMessage) async {
-    try {
-      final roomKey = await getRoomKey(roomId);
-      if (roomKey == null) {
-        print('No room key available for validation');
-        return false;
-      }
-
-      // Test encryption
-      final encrypted = EncryptionService.encrypt(testMessage, roomKey);
-      print('Test encryption successful');
-
-      // Test decryption
-      final decrypted = EncryptionService.decrypt(encrypted, roomKey);
-      print('Test decryption successful');
-
-      // Verify result
-      final isValid = decrypted == testMessage;
-      print('Encryption validation: ${isValid ? 'PASSED' : 'FAILED'}');
-
-      if (!isValid) {
-        print('Original: $testMessage');
-        print('Decrypted: $decrypted');
-      }
-
-      return isValid;
-    } catch (e) {
-      print('Encryption validation error: $e');
-      return false;
     }
   }
 
