@@ -8,9 +8,13 @@ class ChatProvider with ChangeNotifier {
   String? _error;
   int? _currentRoomId;
 
+  int _optimisticMessageIdCounter = -1;
+
   List<Message> get messages => _messages;
   bool get loading => _loading;
   String? get error => _error;
+
+  ChatProvider();
 
   void _setLoading(bool loading) {
     _loading = loading;
@@ -24,6 +28,12 @@ class ChatProvider with ChangeNotifier {
 
   void _sortMessages() {
     _messages.sort((a, b) {
+      if (a.id < 0 && b.id < 0) {
+        return a.createdAt!.compareTo(b.createdAt!);
+      }
+      if (a.id < 0) return 1;
+      if (b.id < 0) return -1;
+
       final idComparison = a.id.compareTo(b.id);
       if (idComparison != 0) {
         return idComparison;
@@ -36,67 +46,129 @@ class ChatProvider with ChangeNotifier {
     });
   }
 
+  void _onNewMessageFromWebSocket(Message newMessage) {
+    int existingIndex = _messages.indexWhere(
+      (msg) =>
+          msg.id < 0 &&
+          msg.senderId == newMessage.senderId &&
+          msg.content == newMessage.content &&
+          msg.createdAt != null &&
+          msg.createdAt!.isBefore(
+            newMessage.createdAt.add(const Duration(seconds: 5)),
+          ),
+    );
+
+    if (existingIndex != -1) {
+      _messages[existingIndex] = newMessage;
+      print(
+        'ChatProvider: Mengganti pesan optimistik dengan pesan server: ${newMessage.id}',
+      );
+    } else {
+      bool messageExists = _messages.any((msg) => msg.id == newMessage.id);
+      if (!messageExists) {
+        _messages.add(newMessage);
+        print('ChatProvider: Pesan baru diterima via WS: ${newMessage.id}');
+      } else {
+        print(
+          'ChatProvider: Pesan duplikat diterima via WS: ${newMessage.id}. Melewati.',
+        );
+      }
+    }
+
+    _sortMessages();
+    notifyListeners();
+  }
+
+  Future<void> addOptimisticMessage(Message message) async {
+    _messages.add(message);
+    _sortMessages();
+    notifyListeners();
+  }
+
+  void removeOptimisticMessage(int optimisticId) {
+    _messages.removeWhere((msg) => msg.id == optimisticId);
+    _sortMessages();
+    notifyListeners();
+  }
+
   Future<void> fetchMessages(int roomId) async {
     _setLoading(true);
     _setError(null);
 
     try {
       if (_currentRoomId != null && _currentRoomId != roomId) {
-        ChatService.stopMessagePolling();
+        ChatService.disconnectWebSocket();
       }
+      _currentRoomId = roomId;
       final fetchedMessages = await ChatService.getMessages(roomId);
       _messages = List.from(fetchedMessages);
       _sortMessages();
-      _currentRoomId = roomId;
 
       print(
-        'ChatProvider: Loaded ${_messages.length} messages for room $roomId',
+        'ChatProvider: Memuat ${_messages.length} pesan untuk room $roomId',
       );
       print('Message IDs: ${_messages.map((m) => m.id).join(', ')}');
-      ChatService.startMessagePolling(roomId, _onMessagesUpdated);
+      await ChatService.connectWebSocket(roomId, _onNewMessageFromWebSocket);
     } catch (e) {
       _setError(e.toString());
-      print('ChatProvider fetch error: $e');
+      print('ChatProvider error saat fetch: $e');
     } finally {
       _setLoading(false);
     }
-  }
-
-  void _onMessagesUpdated(List<Message> updatedMessages) {
-    print('ChatProvider: Received ${updatedMessages.length} updated messages');
-    _messages = List.from(updatedMessages);
-    _sortMessages();
-
-    print(
-      'ChatProvider: Updated message IDs: ${_messages.map((m) => m.id).join(', ')}',
-    );
-    notifyListeners();
   }
 
   Future<void> sendMessage(
     int roomId,
     String content, {
     bool encrypt = false,
+    required int senderId,
   }) async {
-    try {
-      _setError(null);
+    _setError(null);
 
-      final sentMessage = await ChatService.sendMessage(
-        roomId,
-        content,
-        encrypt: encrypt,
+    final optimisticMessage = Message(
+      id: _optimisticMessageIdCounter--,
+      roomId: roomId,
+      senderId: senderId,
+      content: content,
+      isEncrypted: encrypt,
+      createdAt: DateTime.now(),
+      decryptedContent: encrypt ? null : content,
+    );
+
+    await addOptimisticMessage(optimisticMessage);
+
+    try {
+      await ChatService.sendMessage(roomId, content, encrypt: encrypt);
+      print(
+        'ChatProvider: Pengiriman pesan dimulai. Menunggu broadcast WebSocket untuk pembaruan.',
       );
 
-      print('ChatProvider: Message sent with ID ${sentMessage.id}');
+      await Future.delayed(const Duration(seconds: 2));
+
+      bool wasReplaced = _messages.any(
+        (msg) =>
+            msg.id > 0 &&
+            msg.senderId == senderId &&
+            msg.content == content &&
+            msg.createdAt!.isAfter(
+              optimisticMessage.createdAt!.subtract(const Duration(seconds: 1)),
+            ),
+      );
+
+      if (!wasReplaced) {
+        await refreshMessages();
+      }
     } catch (e) {
-      _setError('Failed to send message: $e');
-      print('ChatProvider send error: $e');
+      removeOptimisticMessage(optimisticMessage.id);
+      _setError('Gagal mengirim pesan: $e');
+      print('ChatProvider error saat kirim: $e');
       rethrow;
     }
   }
 
+  @override
   void dispose() {
-    ChatService.stopMessagePolling();
+    ChatService.disconnectWebSocket();
     super.dispose();
   }
 
@@ -110,7 +182,7 @@ class ChatProvider with ChangeNotifier {
     _messages.clear();
     _error = null;
     _loading = false;
-    ChatService.stopMessagePolling();
+    ChatService.disconnectWebSocket();
     _currentRoomId = null;
     notifyListeners();
   }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import '../constants/api_constants.dart';
 import '../models/chat_room.dart';
 import '../models/message.dart';
@@ -8,10 +9,13 @@ import 'api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatService {
-  static Timer? _messagePollingTimer;
-  static int? _currentRoomId;
-  static Function(List<Message>)? _onMessagesUpdated;
-  static List<Message> _lastMessages = [];
+  static WebSocketChannel? _channel;
+  static StreamSubscription? _webSocketSubscription;
+  static Function(Message)? _onNewMessageReceived;
+  static int? _activeRoomId;
+  static Timer? _reconnectTimer;
+  static int _reconnectAttempts = 0;
+  static const int _maxReconnectAttempts = 5;
 
   static Future<void> ensureRoomKey(int roomId) async {
     try {
@@ -89,9 +93,6 @@ class ChatService {
         print(
           'Message IDs (chronological): ${messages.map((m) => m.id).join(', ')}',
         );
-
-        _lastMessages = List.from(messages);
-
         return messages;
       } else {
         throw Exception('Failed to fetch messages: ${response.statusCode}');
@@ -99,6 +100,100 @@ class ChatService {
     } catch (e) {
       throw Exception('Get messages error: $e');
     }
+  }
+
+  static Future<void> connectWebSocket(
+    int roomId,
+    Function(Message) onNewMessage,
+  ) async {
+    if (_channel != null && _activeRoomId == roomId) {
+      print('WebSocket already connected for room $roomId');
+      _onNewMessageReceived = onNewMessage;
+      return;
+    }
+
+    disconnectWebSocket();
+
+    _activeRoomId = roomId;
+    _onNewMessageReceived = onNewMessage;
+    _reconnectAttempts = 0;
+
+    await _connectWebSocketInternal();
+  }
+
+  static Future<void> _connectWebSocketInternal() async {
+    if (_activeRoomId == null) return;
+
+    try {
+      final token = await ApiService.getToken();
+      final wsUrl = Uri.parse(
+        '${ApiConstants.wsBaseUrl}/chat/$_activeRoomId?token=$token',
+      );
+
+      _channel = WebSocketChannel.connect(wsUrl);
+      print('Attempting to connect WebSocket to $wsUrl');
+
+      _webSocketSubscription = _channel!.stream.listen(
+        (messageEvent) {
+          print('WebSocket message received: $messageEvent');
+          _reconnectAttempts = 0;
+          try {
+            final Map<String, dynamic> data = json.decode(messageEvent);
+            if (data['event'] == 'new_message') {
+              final Message newMessage = Message.fromJson(data['data']);
+              if (newMessage.roomId == _activeRoomId) {
+                _onNewMessageReceived?.call(newMessage);
+              }
+            }
+          } catch (e) {
+            print('Error decoding WebSocket message: $e');
+          }
+        },
+        onDone: () {
+          print('WebSocket disconnected (onDone)');
+          _handleWebSocketDisconnection();
+        },
+        onError: (error) {
+          print('WebSocket error: $error');
+          _handleWebSocketDisconnection();
+        },
+        cancelOnError: true,
+      );
+      print('WebSocket connected for room $_activeRoomId');
+    } catch (e) {
+      print('Failed to connect WebSocket: $e');
+      _handleWebSocketDisconnection();
+    }
+  }
+
+  static void _handleWebSocketDisconnection() {
+    if (_activeRoomId != null &&
+        _reconnectAttempts < _maxReconnectAttempts &&
+        _onNewMessageReceived != null) {
+      _reconnectAttempts++;
+      print('Attempting to reconnect WebSocket (attempt $_reconnectAttempts)');
+
+      _reconnectTimer?.cancel();
+      _reconnectTimer = Timer(
+        Duration(seconds: _reconnectAttempts * 2),
+        () => _connectWebSocketInternal(),
+      );
+    } else {
+      disconnectWebSocket();
+    }
+  }
+
+  static void disconnectWebSocket() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _webSocketSubscription?.cancel();
+    _webSocketSubscription = null;
+    _channel?.sink.close();
+    _channel = null;
+    _activeRoomId = null;
+    _onNewMessageReceived = null;
+    _reconnectAttempts = 0;
+    print('WebSocket disconnected');
   }
 
   static Future<Message> sendMessage(
@@ -115,13 +210,9 @@ class ChatService {
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         final message = Message.fromJson(data['data']);
-        if (_currentRoomId == roomId && _onMessagesUpdated != null) {
-          await Future.delayed(Duration(milliseconds: 100));
-
-          final updatedMessages = await getMessages(roomId);
-          _onMessagesUpdated!(updatedMessages);
-        }
-
+        print(
+          'Message sent successfully via HTTP POST. Awaiting WebSocket broadcast.',
+        );
         return message;
       } else {
         throw Exception('Failed to send message: ${response.statusCode}');
@@ -129,62 +220,6 @@ class ChatService {
     } catch (e) {
       throw Exception('Send message error: $e');
     }
-  }
-
-  static void startMessagePolling(
-    int roomId,
-    Function(List<Message>) onUpdate,
-  ) {
-    stopMessagePolling();
-
-    _currentRoomId = roomId;
-    _onMessagesUpdated = onUpdate;
-    _messagePollingTimer = Timer.periodic(Duration(seconds: 3), (timer) async {
-      try {
-        final messages = await getMessages(roomId);
-        if (_shouldUpdateMessages(messages)) {
-          print('Updating messages: ${messages.length} total messages');
-          _onMessagesUpdated!(messages);
-        }
-      } catch (e) {
-        print('Polling error: $e');
-      }
-    });
-
-    print('Started message polling for room $roomId');
-  }
-
-  static bool _shouldUpdateMessages(List<Message> newMessages) {
-    if (_lastMessages.length != newMessages.length) {
-      print(
-        'Message count changed: ${_lastMessages.length} -> ${newMessages.length}',
-      );
-      return true;
-    }
-    if (newMessages.isEmpty) {
-      return false;
-    }
-    final checkCount = newMessages.length < 5 ? newMessages.length : 5;
-
-    for (int i = newMessages.length - checkCount; i < newMessages.length; i++) {
-      if (i >= _lastMessages.length ||
-          _lastMessages[i].id != newMessages[i].id ||
-          _lastMessages[i].content != newMessages[i].content) {
-        print('Message difference detected at index $i');
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  static void stopMessagePolling() {
-    _messagePollingTimer?.cancel();
-    _messagePollingTimer = null;
-    _currentRoomId = null;
-    _onMessagesUpdated = null;
-    _lastMessages.clear();
-    print('Stopped message polling');
   }
 
   static Future<ChatRoom> createPrivateChat(int userId) async {

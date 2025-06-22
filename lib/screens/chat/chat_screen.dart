@@ -90,6 +90,7 @@ class _ChatScreenState extends State<ChatScreen>
   final TextEditingController _passwordController = TextEditingController();
   late AnimationController _whisperAnimationController;
   late Animation<double> _whisperScaleAnimation;
+  late ChatProvider _chatProvider;
 
   @override
   void initState() {
@@ -107,7 +108,11 @@ class _ChatScreenState extends State<ChatScreen>
     );
     _loadCurrentUserId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadMessages();
+      _chatProvider = Provider.of<ChatProvider>(context, listen: false);
+      _chatProvider.fetchMessages(widget.roomId).then((_) {
+        _scrollToBottom();
+      });
+      _chatProvider.addListener(_onChatProviderUpdated);
     });
   }
 
@@ -117,6 +122,7 @@ class _ChatScreenState extends State<ChatScreen>
     _scrollController.dispose();
     _passwordController.dispose();
     _whisperAnimationController.dispose();
+    _chatProvider.removeListener(_onChatProviderUpdated);
     super.dispose();
   }
 
@@ -138,15 +144,14 @@ class _ChatScreenState extends State<ChatScreen>
     }
   }
 
-  Future<void> _loadMessages() async {
-    await Provider.of<ChatProvider>(
-      context,
-      listen: false,
-    ).fetchMessages(widget.roomId);
-
+  void _onChatProviderUpdated() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
+  }
+
+  Future<void> _loadMessages() async {
+    await _chatProvider.fetchMessages(widget.roomId);
   }
 
   void _scrollToBottom() {
@@ -160,15 +165,21 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _sendMessage(String text, bool encrypt) async {
+    if (currentUserId == null) {
+      _showSnackBar(
+        'User ID tidak dimuat. Silakan login lagi.',
+        _errorColor,
+        Icons.error_outline,
+      );
+      return;
+    }
     try {
-      await Provider.of<ChatProvider>(
-        context,
-        listen: false,
-      ).sendMessage(widget.roomId, text, encrypt: encrypt);
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToBottom();
-      });
+      await _chatProvider.sendMessage(
+        widget.roomId,
+        text,
+        encrypt: encrypt,
+        senderId: currentUserId!,
+      );
     } catch (e) {
       if (mounted) {
         _showSnackBar(

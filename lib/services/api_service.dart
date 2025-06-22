@@ -4,6 +4,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
 
 class ApiService {
+  static Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    print('DEBUG: Retrieved token: $token');
+    return token;
+  }
+
   static Future<Map<String, String>> _getHeaders({
     bool includeAuth = true,
   }) async {
@@ -12,9 +19,7 @@ class ApiService {
       'Accept': 'application/json',
     };
     if (includeAuth) {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-      print('DEBUG: Using token: $token'); // <-- Add this line
+      final token = await getToken();
       if (token != null) {
         headers['Authorization'] = 'Bearer $token';
       }

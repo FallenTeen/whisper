@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 class Message {
   final int id;
+  final int roomId;
   final int senderId;
   final String content;
   final bool isEncrypted;
@@ -8,6 +11,7 @@ class Message {
 
   Message({
     required this.id,
+    required this.roomId,
     required this.senderId,
     required this.content,
     required this.isEncrypted,
@@ -16,11 +20,10 @@ class Message {
   });
 
   factory Message.fromJson(Map<String, dynamic> json) {
-    print('DEBUG: Message.fromJson input: $json');
-    int senderId = json['sender_id'] ?? (json['user']?['id'] ?? -1);
     return Message(
       id: json['id'] ?? -1,
-      senderId: senderId,
+      roomId: json['room_id'] ?? -1,
+      senderId: json['sender_id'] ?? (json['user']?['id'] ?? -1),
       content: json['content'] ?? '',
       isEncrypted: json['is_encrypted'] ?? false,
       createdAt: DateTime.parse(json['created_at']),
