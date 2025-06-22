@@ -115,18 +115,12 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Column(
                   children: [
                     const Spacer(flex: 2),
-
-                    // Logo and Welcome Text
                     _buildHeader(colorScheme),
 
                     const Spacer(flex: 1),
-
-                    // Login Form
                     _buildLoginForm(theme),
 
                     const Spacer(flex: 1),
-
-                    // Bottom Navigation
                     _buildBottomSection(colorScheme),
 
                     const Spacer(flex: 1),
@@ -174,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen>
         const SizedBox(height: 32),
 
         Text(
-          'Welcome Back',
+          'Selamat Datang',
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -186,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen>
         const SizedBox(height: 8),
 
         Text(
-          'Sign in to continue to Whisper Chat',
+          'Login untuk kembali menggunakan Whisper Chat',
           style: TextStyle(
             fontSize: 16,
             color: colorScheme.onSurface.withOpacity(0.6),
@@ -221,12 +215,12 @@ class _LoginScreenState extends State<LoginScreen>
               controller: _emailController,
               focusNode: _emailFocusNode,
               label: 'Email',
-              hintText: 'Enter your email',
+              hintText: 'Masukan email anda',
               prefixIcon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
               validator: (v) => v != null && v.contains('@')
                   ? null
-                  : 'Please enter a valid email',
+                  : 'Masukkan email yang benar',
               onSaved: (v) => _email = v ?? '',
               onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
             ),
@@ -237,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen>
               controller: _passwordController,
               focusNode: _passwordFocusNode,
               label: 'Password',
-              hintText: 'Enter your password',
+              hintText: 'Masukkan password anda',
               prefixIcon: Icons.lock_outline,
               obscureText: _obscurePassword,
               suffixIcon: IconButton(
@@ -254,7 +248,7 @@ class _LoginScreenState extends State<LoginScreen>
               ),
               validator: (v) => v != null && v.length >= 6
                   ? null
-                  : 'Password must be at least 6 characters',
+                  : 'Password minimal 6 karakter',
               onSaved: (v) => _password = v ?? '',
               onFieldSubmitted: (_) => _submit(),
             ),
@@ -328,7 +322,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
                       child: const Text(
-                        'Sign In',
+                        'Log In',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -423,7 +417,7 @@ class _LoginScreenState extends State<LoginScreen>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'or',
+                'atau',
                 style: TextStyle(
                   color: colorScheme.onSurface.withOpacity(0.6),
                   fontSize: 14,
@@ -455,9 +449,9 @@ class _LoginScreenState extends State<LoginScreen>
                 color: colorScheme.onSurface.withOpacity(0.7),
               ),
               children: [
-                const TextSpan(text: "Don't have an account? "),
+                const TextSpan(text: "Belum memiliki akun? "),
                 TextSpan(
-                  text: 'Sign Up',
+                  text: 'Daftar',
                   style: TextStyle(
                     color: colorScheme.primary,
                     fontWeight: FontWeight.w600,

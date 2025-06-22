@@ -42,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _logout() async {
     final theme = Theme.of(context);
+
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
@@ -64,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(width: 16),
             Text(
-              'Sign Out',
+              'Logout',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
@@ -74,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ],
         ),
         content: Text(
-          'Are you sure you want to sign out of your account?',
+          'Anda yakin ingin logout?',
           style: TextStyle(
             fontSize: 16,
             color: theme.colorScheme.onSurface.withOpacity(0.7),
@@ -105,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             child: const Text(
-              'Sign Out',
+              'Log Out',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
@@ -129,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Logout failed: $e',
+                      'Logout gagal: $e',
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -162,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           scrolledUnderElevation: 0,
           backgroundColor: colorScheme.surface,
           surfaceTintColor: Colors.transparent,
+          automaticallyImplyLeading: false,
           title: Row(
             children: [
               Container(
@@ -250,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            'Sign Out',
+                            'Log Out',
                             style: TextStyle(
                               fontWeight: FontWeight.w500,
                               color: colorScheme.error,
@@ -334,70 +336,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             children: const [ChatListScreen(), ContactsScreen()],
           ),
         ),
-        floatingActionButton: AnimatedBuilder(
-          animation: _tabController,
-          builder: (context, child) {
-            return FloatingActionButton.extended(
-              onPressed: () {
-                if (_tabController.index == 0) {
-                  _showNewChatDialog();
-                } else {
-                  _showAddContactDialog();
-                }
-              },
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              icon: Icon(
-                _tabController.index == 0
-                    ? Icons.add_comment_outlined
-                    : Icons.person_add_outlined,
-                size: 20,
-              ),
-              label: Text(
-                _tabController.index == 0 ? 'New Chat' : 'Add Contact',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            );
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            _tabController.animateTo(1);
           },
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          icon: const Icon(Icons.add_comment_outlined, size: 20),
+          label: const Text(
+            'Chat Baru',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
         ),
-      ),
-    );
-  }
-
-  void _showNewChatDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('New Chat'),
-        content: const Text('New chat functionality coming soon!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddContactDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Add Contact'),
-        content: const Text('Add contact functionality coming soon!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
       ),
     );
   }

@@ -184,7 +184,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         const SizedBox(height: 32),
 
         Text(
-          'Create Account',
+          'Buat Akun',
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -196,7 +196,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         const SizedBox(height: 8),
 
         Text(
-          'Join Whisper Chat and start connecting',
+          'Daftar menjadi bagian dari whisper chat community',
           style: TextStyle(
             fontSize: 16,
             color: colorScheme.onSurface.withOpacity(0.6),
@@ -230,11 +230,11 @@ class _RegisterScreenState extends State<RegisterScreen>
             _buildTextField(
               controller: _nameController,
               focusNode: _nameFocusNode,
-              label: 'Full Name',
-              hintText: 'Enter your full name',
+              label: 'Nama Panjang',
+              hintText: 'Masukkan nama panjang anda',
               prefixIcon: Icons.person_outline,
               validator: (v) =>
-                  v != null && v.isNotEmpty ? null : 'Please enter your name',
+                  v != null && v.isNotEmpty ? null : 'Masukkan nama anda',
               onSaved: (v) => _name = v ?? '',
               onFieldSubmitted: (_) => _usernameFocusNode.requestFocus(),
             ),
@@ -245,11 +245,11 @@ class _RegisterScreenState extends State<RegisterScreen>
               controller: _usernameController,
               focusNode: _usernameFocusNode,
               label: 'Username',
-              hintText: 'Choose a username',
+              hintText: 'Masukkan username anda',
               prefixIcon: Icons.alternate_email_outlined,
               validator: (v) => v != null && v.isNotEmpty && v.length >= 3
                   ? null
-                  : 'Username must be at least 3 characters',
+                  : 'Username minimal 3 karakter',
               onSaved: (v) => _username = v ?? '',
               onFieldSubmitted: (_) => _emailFocusNode.requestFocus(),
             ),
@@ -260,12 +260,12 @@ class _RegisterScreenState extends State<RegisterScreen>
               controller: _emailController,
               focusNode: _emailFocusNode,
               label: 'Email',
-              hintText: 'Enter your email',
+              hintText: 'Masukkan email anda',
               prefixIcon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
               validator: (v) => v != null && v.contains('@')
                   ? null
-                  : 'Please enter a valid email',
+                  : 'Masukkan email dengan benar',
               onSaved: (v) => _email = v ?? '',
               onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
             ),
@@ -276,7 +276,7 @@ class _RegisterScreenState extends State<RegisterScreen>
               controller: _passwordController,
               focusNode: _passwordFocusNode,
               label: 'Password',
-              hintText: 'Create a strong password',
+              hintText: 'Buat password yang kuat',
               prefixIcon: Icons.lock_outline,
               obscureText: _obscurePassword,
               suffixIcon: IconButton(
@@ -293,7 +293,7 @@ class _RegisterScreenState extends State<RegisterScreen>
               ),
               validator: (v) => v != null && v.length >= 6
                   ? null
-                  : 'Password must be at least 6 characters',
+                  : 'Password minimal 6 karakter',
               onSaved: (v) => _password = v ?? '',
               onFieldSubmitted: (_) => _submit(),
             ),
@@ -367,7 +367,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                         ),
                       ),
                       child: const Text(
-                        'Create Account',
+                        'Buat Akun',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -462,7 +462,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'or',
+                'atau',
                 style: TextStyle(
                   color: colorScheme.onSurface.withOpacity(0.6),
                   fontSize: 14,
@@ -494,9 +494,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                 color: colorScheme.onSurface.withOpacity(0.7),
               ),
               children: [
-                const TextSpan(text: "Already have an account? "),
+                const TextSpan(text: "Sudah memiliki akun? "),
                 TextSpan(
-                  text: 'Sign In',
+                  text: 'Login',
                   style: TextStyle(
                     color: colorScheme.primary,
                     fontWeight: FontWeight.w600,

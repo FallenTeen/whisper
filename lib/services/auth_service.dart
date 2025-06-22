@@ -60,7 +60,6 @@ class AuthService {
     try {
       await ApiService.post(ApiConstants.logoutUrl, {});
     } catch (e) {
-      // Continue with local logout even if API call fails
     } finally {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('auth_token');
@@ -71,5 +70,32 @@ class AuthService {
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token') != null;
+  }
+
+  static Future<bool> validatePassword(String password) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString('user_data');
+      if (userJson == null) {
+        throw Exception('User data not found');
+      }
+
+      final userMap = json.decode(userJson);
+      final userEmail = userMap['email'];
+
+      // Validate password using login endpoint
+      final response = await ApiService.post(ApiConstants.loginUrl, {
+        'email': userEmail,
+        'password': password,
+      }, includeAuth: false);
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
   }
 }

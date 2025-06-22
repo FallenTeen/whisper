@@ -49,9 +49,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
     if (difference.inDays == 0) {
       return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     } else if (difference.inDays == 1) {
-      return 'Yesterday';
+      return 'Kemarin';
     } else if (difference.inDays < 7) {
-      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Ming'];
       return days[date.weekday - 1];
     } else {
       return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
@@ -81,7 +81,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
             const SizedBox(height: 16),
             Text(
-              'Failed to load chats',
+              'Gagal memuat chats',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
@@ -94,7 +94,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ElevatedButton.icon(
               onPressed: _loadChatRooms,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: const Text('Coba Lagi'),
             ),
           ],
         ),
@@ -113,7 +113,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No chats yet',
+              'Belum ada chat',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey.shade600,
@@ -122,7 +122,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Start a conversation by going to Contacts tab',
+              'Mulai percakapan dengan mencari di kontak',
               style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
               textAlign: TextAlign.center,
             ),
@@ -167,7 +167,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               subtitle: Text(
                 chatRoom.lastMessage.isNotEmpty
                     ? chatRoom.lastMessage
-                    : 'No messages yet',
+                    : 'Belum ada chat',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(

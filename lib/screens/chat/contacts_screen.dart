@@ -37,8 +37,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
     });
 
     try {
-      // Load all users by searching with empty query
-      // This depends on your backend implementation
       final allUsers = await ChatService.searchUsers('');
       setState(() {
         users = allUsers;
@@ -70,7 +68,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
   Future<void> _startChat(User user) async {
     try {
-      // Show loading dialog
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -78,11 +75,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
       );
 
       final chatRoom = await ChatService.createPrivateChat(user.id);
-
-      // Close loading dialog
       Navigator.of(context).pop();
-
-      // Navigate to chat screen
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -91,12 +84,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
         ),
       );
     } catch (e) {
-      // Close loading dialog if it's still open
       Navigator.of(context).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to start chat: $e'),
+          content: Text('Gagal untuk memulai chat: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -113,7 +105,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search contacts...',
+              hintText: 'Cari pengguna...',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
@@ -133,8 +125,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
             ),
           ),
         ),
-
-        // Content
         Expanded(child: _buildContent()),
       ],
     );
@@ -148,7 +138,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Loading contacts...'),
+            Text('Memuat Pengguna...'),
           ],
         ),
       );
@@ -162,7 +152,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
             Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
             const SizedBox(height: 16),
             Text(
-              'Failed to load contacts',
+              'Gagal mencari pengguna',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
@@ -175,7 +165,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
             ElevatedButton.icon(
               onPressed: _loadUsers,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: const Text('Coba Lagi'),
             ),
           ],
         ),
@@ -197,8 +187,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
             const SizedBox(height: 16),
             Text(
               _searchController.text.isNotEmpty
-                  ? 'No contacts found'
-                  : 'No contacts available',
+                  ? 'Tidak ditemukan pengguna'
+                  : 'Tidak ada pengguna',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey.shade600,
@@ -208,8 +198,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
             const SizedBox(height: 8),
             Text(
               _searchController.text.isNotEmpty
-                  ? 'Try searching with different keywords'
-                  : 'Users will appear here when available',
+                  ? 'Coba gunakan keyword lain'
+                  : 'Pengguna akan muncul disini',
               style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
               textAlign: TextAlign.center,
             ),
@@ -273,7 +263,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
               trailing: IconButton(
                 icon: const Icon(Icons.chat),
                 onPressed: () => _startChat(user),
-                tooltip: 'Start chat',
+                tooltip: 'Mulai chat',
               ),
               onTap: () => _startChat(user),
             ),
