@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import '../constants/api_constants.dart';
 import '../models/chat_room.dart';
 import '../models/message.dart';
@@ -7,6 +8,11 @@ import 'api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatService {
+  static Timer? _messagePollingTimer;
+  static int? _currentRoomId;
+  static Function(List<Message>)? _onMessagesUpdated;
+  static List<Message> _lastMessages = []; // Cache pesan terakhir
+
   static Future<void> ensureRoomKey(int roomId) async {
     try {
       final response = await ApiService.get(
@@ -50,6 +56,28 @@ class ChatService {
     }
   }
 
+  // Helper method untuk sorting yang konsisten
+  static List<Message> _sortMessagesProperly(List<Message> messages) {
+    // PENTING: Sort berdasarkan ID ascending (ID kecil = pesan lama, ID besar = pesan baru)
+    // Ini memastikan pesan lama di atas, pesan baru di bawah
+    messages.sort((a, b) {
+      // Prioritas utama: ID (auto-increment, jadi ID lebih besar = pesan lebih baru)
+      final idComparison = a.id.compareTo(b.id);
+      if (idComparison != 0) {
+        return idComparison;
+      }
+
+      // Fallback: timestamp jika ID sama (sangat jarang terjadi)
+      if (a.createdAt != null && b.createdAt != null) {
+        return a.createdAt!.compareTo(b.createdAt!);
+      }
+
+      return 0;
+    });
+
+    return messages;
+  }
+
   static Future<List<Message>> getMessages(int roomId, {int page = 1}) async {
     try {
       final url = '${ApiConstants.getChatMessagesUrl(roomId)}?page=$page';
@@ -57,15 +85,24 @@ class ChatService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final messages = (data['data'] as List)
+        List<Message> messages = (data['data'] as List)
             .map((message) => Message.fromJson(message))
             .toList();
 
+        // Gunakan helper method untuk sorting konsisten
+        messages = _sortMessagesProperly(messages);
+
         print('Fetched ${messages.length} messages for room $roomId');
+        print(
+          'Message IDs (chronological): ${messages.map((m) => m.id).join(', ')}',
+        );
+
+        // Update cache dengan pesan yang sudah diurutkan
+        _lastMessages = List.from(messages);
 
         return messages;
       } else {
-        throw Exception('Failed to fetch messages: \\${response.statusCode}');
+        throw Exception('Failed to fetch messages: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Get messages error: $e');
@@ -78,20 +115,97 @@ class ChatService {
     bool encrypt = false,
   }) async {
     try {
-      // Always send plain text; API will handle encryption if needed
       final response = await ApiService.post(
         ApiConstants.getSendMessageUrl(roomId),
         {'content': content, 'encrypt': encrypt},
       );
+
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
-        return Message.fromJson(data['data']);
+        final message = Message.fromJson(data['data']);
+
+        // Langsung refresh pesan untuk room yang aktif
+        if (_currentRoomId == roomId && _onMessagesUpdated != null) {
+          // Tambahkan delay kecil untuk memastikan pesan tersimpan di server
+          await Future.delayed(Duration(milliseconds: 100));
+
+          final updatedMessages = await getMessages(roomId);
+          _onMessagesUpdated!(updatedMessages);
+        }
+
+        return message;
       } else {
-        throw Exception('Failed to send message: \\${response.statusCode}');
+        throw Exception('Failed to send message: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Send message error: $e');
     }
+  }
+
+  static void startMessagePolling(
+    int roomId,
+    Function(List<Message>) onUpdate,
+  ) {
+    stopMessagePolling();
+
+    _currentRoomId = roomId;
+    _onMessagesUpdated = onUpdate;
+
+    // Polling setiap 3 detik untuk responsivitas yang baik
+    _messagePollingTimer = Timer.periodic(Duration(seconds: 3), (timer) async {
+      try {
+        final messages = await getMessages(roomId);
+
+        // Selalu update jika ada perubahan
+        if (_shouldUpdateMessages(messages)) {
+          print('Updating messages: ${messages.length} total messages');
+          _onMessagesUpdated!(messages);
+        }
+      } catch (e) {
+        print('Polling error: $e');
+      }
+    });
+
+    print('Started message polling for room $roomId');
+  }
+
+  // Helper method yang lebih akurat untuk mendeteksi perubahan
+  static bool _shouldUpdateMessages(List<Message> newMessages) {
+    // Jika jumlah pesan berbeda, pasti ada perubahan
+    if (_lastMessages.length != newMessages.length) {
+      print(
+        'Message count changed: ${_lastMessages.length} -> ${newMessages.length}',
+      );
+      return true;
+    }
+
+    // Jika tidak ada pesan, tidak perlu update
+    if (newMessages.isEmpty) {
+      return false;
+    }
+
+    // Bandingkan beberapa pesan terakhir untuk deteksi perubahan
+    final checkCount = newMessages.length < 5 ? newMessages.length : 5;
+
+    for (int i = newMessages.length - checkCount; i < newMessages.length; i++) {
+      if (i >= _lastMessages.length ||
+          _lastMessages[i].id != newMessages[i].id ||
+          _lastMessages[i].content != newMessages[i].content) {
+        print('Message difference detected at index $i');
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  static void stopMessagePolling() {
+    _messagePollingTimer?.cancel();
+    _messagePollingTimer = null;
+    _currentRoomId = null;
+    _onMessagesUpdated = null;
+    _lastMessages.clear();
+    print('Stopped message polling');
   }
 
   static Future<ChatRoom> createPrivateChat(int userId) async {
@@ -104,8 +218,6 @@ class ChatService {
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         final chatRoom = ChatRoom.fromJson(data['data']);
-
-        // Save room key if provided
         final key = data['data']['key'] ?? data['data']['encryption_key'];
         if (key != null) {
           await saveRoomKey(chatRoom.id, key);
@@ -125,9 +237,6 @@ class ChatService {
 
   static Future<List<User>> searchUsers(String query) async {
     try {
-      // If your backend API for searchUsers returns all users when the query is empty,
-      // this will work for fetching all users for the Contacts tab.
-      // Otherwise, you might need a separate endpoint for 'getAllUsers'.
       final url =
           '${ApiConstants.searchUsersUrl}?query=${Uri.encodeComponent(query)}';
       final response = await ApiService.get(url);
@@ -148,7 +257,6 @@ class ChatService {
     }
   }
 
-  // New method to get all chat rooms
   static Future<List<ChatRoom>> getChatRooms() async {
     try {
       final response = await ApiService.get(ApiConstants.chatRoomsUrl);
@@ -168,7 +276,6 @@ class ChatService {
     }
   }
 
-  // Helper method untuk membersihkan room key (jika diperlukan)
   static Future<void> clearRoomKey(int roomId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -179,7 +286,6 @@ class ChatService {
     }
   }
 
-  // Helper method untuk mendapatkan semua room keys (untuk debugging)
   static Future<Map<int, String>> getAllRoomKeys() async {
     try {
       final prefs = await SharedPreferences.getInstance();
