@@ -125,6 +125,9 @@ class ChatService {
 
   static Future<List<User>> searchUsers(String query) async {
     try {
+      // If your backend API for searchUsers returns all users when the query is empty,
+      // this will work for fetching all users for the Contacts tab.
+      // Otherwise, you might need a separate endpoint for 'getAllUsers'.
       final url =
           '${ApiConstants.searchUsersUrl}?query=${Uri.encodeComponent(query)}';
       final response = await ApiService.get(url);
@@ -142,6 +145,26 @@ class ChatService {
     } catch (e) {
       print('Search users error: $e');
       throw Exception('Search users error: $e');
+    }
+  }
+
+  // New method to get all chat rooms
+  static Future<List<ChatRoom>> getChatRooms() async {
+    try {
+      final response = await ApiService.get(ApiConstants.chatRoomsUrl);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final chatRooms = (data['data'] as List)
+            .map((chatRoom) => ChatRoom.fromJson(chatRoom))
+            .toList();
+        print('Fetched ${chatRooms.length} chat rooms');
+        return chatRooms;
+      } else {
+        throw Exception('Failed to fetch chat rooms: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Get chat rooms error: $e');
+      throw Exception('Get chat rooms error: $e');
     }
   }
 

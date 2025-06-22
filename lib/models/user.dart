@@ -14,12 +14,29 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    print('DEBUG: User.fromJson input: $json');
+
     return User(
-      id: json['id'],
-      name: json['name'],
-      username: json['username'],
-      email: json['email'],
-      avatar: json['avatar'],
+      id: json['id'] as int? ?? -1,
+      name: json['name'] as String? ?? 'Unknown User',
+      username: json['username'] as String?,
+      email: json['email'] as String?,
+      avatar: json['avatar'] as String?,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'username': username,
+      'email': email,
+      'avatar': avatar,
+    };
+  }
+
+  @override
+  String toString() {
+    return 'User(id: $id, name: $name, username: $username, email: $email)';
   }
 }
