@@ -11,7 +11,7 @@ class ChatService {
   static Timer? _messagePollingTimer;
   static int? _currentRoomId;
   static Function(List<Message>)? _onMessagesUpdated;
-  static List<Message> _lastMessages = []; // Cache pesan terakhir
+  static List<Message> _lastMessages = [];
 
   static Future<void> ensureRoomKey(int roomId) async {
     try {
@@ -56,18 +56,13 @@ class ChatService {
     }
   }
 
-  // Helper method untuk sorting yang konsisten
   static List<Message> _sortMessagesProperly(List<Message> messages) {
-    // PENTING: Sort berdasarkan ID ascending (ID kecil = pesan lama, ID besar = pesan baru)
-    // Ini memastikan pesan lama di atas, pesan baru di bawah
     messages.sort((a, b) {
-      // Prioritas utama: ID (auto-increment, jadi ID lebih besar = pesan lebih baru)
       final idComparison = a.id.compareTo(b.id);
       if (idComparison != 0) {
         return idComparison;
       }
 
-      // Fallback: timestamp jika ID sama (sangat jarang terjadi)
       if (a.createdAt != null && b.createdAt != null) {
         return a.createdAt!.compareTo(b.createdAt!);
       }
@@ -88,8 +83,6 @@ class ChatService {
         List<Message> messages = (data['data'] as List)
             .map((message) => Message.fromJson(message))
             .toList();
-
-        // Gunakan helper method untuk sorting konsisten
         messages = _sortMessagesProperly(messages);
 
         print('Fetched ${messages.length} messages for room $roomId');
@@ -97,7 +90,6 @@ class ChatService {
           'Message IDs (chronological): ${messages.map((m) => m.id).join(', ')}',
         );
 
-        // Update cache dengan pesan yang sudah diurutkan
         _lastMessages = List.from(messages);
 
         return messages;
@@ -123,10 +115,7 @@ class ChatService {
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         final message = Message.fromJson(data['data']);
-
-        // Langsung refresh pesan untuk room yang aktif
         if (_currentRoomId == roomId && _onMessagesUpdated != null) {
-          // Tambahkan delay kecil untuk memastikan pesan tersimpan di server
           await Future.delayed(Duration(milliseconds: 100));
 
           final updatedMessages = await getMessages(roomId);
@@ -150,13 +139,9 @@ class ChatService {
 
     _currentRoomId = roomId;
     _onMessagesUpdated = onUpdate;
-
-    // Polling setiap 3 detik untuk responsivitas yang baik
     _messagePollingTimer = Timer.periodic(Duration(seconds: 3), (timer) async {
       try {
         final messages = await getMessages(roomId);
-
-        // Selalu update jika ada perubahan
         if (_shouldUpdateMessages(messages)) {
           print('Updating messages: ${messages.length} total messages');
           _onMessagesUpdated!(messages);
@@ -169,22 +154,16 @@ class ChatService {
     print('Started message polling for room $roomId');
   }
 
-  // Helper method yang lebih akurat untuk mendeteksi perubahan
   static bool _shouldUpdateMessages(List<Message> newMessages) {
-    // Jika jumlah pesan berbeda, pasti ada perubahan
     if (_lastMessages.length != newMessages.length) {
       print(
         'Message count changed: ${_lastMessages.length} -> ${newMessages.length}',
       );
       return true;
     }
-
-    // Jika tidak ada pesan, tidak perlu update
     if (newMessages.isEmpty) {
       return false;
     }
-
-    // Bandingkan beberapa pesan terakhir untuk deteksi perubahan
     final checkCount = newMessages.length < 5 ? newMessages.length : 5;
 
     for (int i = newMessages.length - checkCount; i < newMessages.length; i++) {

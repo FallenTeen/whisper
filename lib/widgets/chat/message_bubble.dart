@@ -26,16 +26,13 @@ class _MessageBubbleState extends State<MessageBubble>
   late AnimationController _scaleController;
   late Animation<double> _scaleAnimation;
 
-  // Modern Color Palette
-  static const _primaryColor = Color(0xFF6366F1); // Indigo
+  static const _primaryColor = Color(0xFF6366F1);
   static const _primaryLight = Color(0xFF818CF8);
-  static const _surfaceColor = Color(0xFFF8FAFC); // Slate-50
-  static const _surfaceDark = Color(0xFF1E293B); // Slate-800
-  static const _textPrimary = Color(0xFF0F172A); // Slate-900
-  static const _textSecondary = Color(0xFF64748B); // Slate-500
-  static const _encryptedColor = Color(0xFF7C3AED); // Violet-600
-  static const _encryptedLight = Color(0xFFA855F7); // Purple-500
-  static const _successColor = Color(0xFF10B981); // Emerald-500
+  static const _surfaceColor = Color(0xFFF8FAFC);
+  static const _textPrimary = Color(0xFF0F172A);
+  static const _textSecondary = Color(0xFF64748B);
+  static const _encryptedColor = Color(0xFF7C3AED);
+  static const _successColor = Color(0xFF10B981);
 
   @override
   void initState() {
@@ -88,8 +85,8 @@ class _MessageBubbleState extends State<MessageBubble>
       scale: _scaleAnimation,
       child: Align(
         alignment: widget.isMe ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: Column(
             crossAxisAlignment: widget.isMe
                 ? CrossAxisAlignment.end
@@ -105,9 +102,9 @@ class _MessageBubbleState extends State<MessageBubble>
                   borderRadius: _getBorderRadius(),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
@@ -116,7 +113,7 @@ class _MessageBubbleState extends State<MessageBubble>
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 12,
+                      vertical: 10,
                     ),
                     child: _buildMessageContent(),
                   ),
@@ -165,8 +162,8 @@ class _MessageBubbleState extends State<MessageBubble>
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: widget.whisperMode
-                    ? _successColor.withOpacity(0.1)
-                    : _encryptedColor.withOpacity(0.1),
+                    ? _successColor.withOpacity(0.15)
+                    : _encryptedColor.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -199,14 +196,14 @@ class _MessageBubbleState extends State<MessageBubble>
           Text(
             _formatTime(widget.message.createdAt),
             style: const TextStyle(
-              fontSize: 11,
+              fontSize: 10,
               color: _textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
           if (widget.isMe) ...[
-            const SizedBox(width: 6),
-            Icon(Icons.done_all_rounded, size: 12, color: _primaryLight),
+            const SizedBox(width: 4),
+            Icon(Icons.done_all_rounded, size: 10, color: _primaryLight),
           ],
         ],
       ),
@@ -244,10 +241,10 @@ class _MessageBubbleState extends State<MessageBubble>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withOpacity(0.2),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
@@ -255,15 +252,15 @@ class _MessageBubbleState extends State<MessageBubble>
             children: [
               Icon(
                 Icons.lock_open_rounded,
-                size: 12,
-                color: Colors.white.withOpacity(0.9),
+                size: 11,
+                color: Colors.white.withOpacity(0.95),
               ),
               const SizedBox(width: 4),
               Text(
                 'Decrypted',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 10,
+                  color: Colors.white.withOpacity(0.95),
+                  fontSize: 9,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.3,
                 ),
@@ -289,7 +286,7 @@ class _MessageBubbleState extends State<MessageBubble>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: const EdgeInsets.only(bottom: 10),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -320,11 +317,11 @@ class _MessageBubbleState extends State<MessageBubble>
         ),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.white.withOpacity(0.15), width: 1),
+            border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,7 +329,7 @@ class _MessageBubbleState extends State<MessageBubble>
               Text(
                 widget.message.content,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withOpacity(0.75),
                   fontSize: 11,
                   fontFamily: 'monospace',
                   height: 1.3,
@@ -341,11 +338,11 @@ class _MessageBubbleState extends State<MessageBubble>
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 'Enable whisper mode to decrypt',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withOpacity(0.65),
                   fontSize: 9,
                   fontStyle: FontStyle.italic,
                   letterSpacing: 0.2,
